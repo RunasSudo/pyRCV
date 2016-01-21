@@ -19,20 +19,29 @@
 import utils
 import sys
 
-candidatesIn = sys.argv[1]
-ballotsIn = sys.argv[2]
+ballotsIn = sys.argv[1]
 
-with open(candidatesIn, 'r') as candidatesFile:
-	candidates = candidatesFile.read().splitlines()
-
+ballots = []
+candidates = []
 with open(ballotsIn, 'r') as ballotsFile:
-	ballots = ballotsFile.read().splitlines()
-	for i in range(0, len(ballots)):
-		ballots[i] = ballots[i].split(',')
+	ballotsLines = ballotsFile.read().splitlines()
+	for i in range(1, len(ballotsLines)):
+		if ballotsLines[i] == '0': # End of ballots
+			break
+		prefs = ballotsLines[i].split(' ')
+		ballot = [int(x) - 1 for x in prefs[1:]]
+		for i in range(0, int(prefs[0])):
+			ballots.append(ballot)
+	for j in range(i + 1, len(ballotsLines) - 1):
+		candidates.append(ballotsLines[j].strip('"'))
 
 gammas = []
 for ballot in ballots:
-	gammas.append(utils.gamma_encode(utils.to_relative_answers([candidates.index(x) for x in ballot], len(candidates)), len(candidates)))
+	try:
+		gammas.append(utils.gamma_encode(utils.to_relative_answers(ballot, len(candidates)), len(candidates)))
+	except Exception as e:
+		print(e, file=sys.stderr)
+		print(ballot, file=sys.stderr)
 
 print([gammas])
 #print([candidates[y]] for x in utils.gamma_decode(gammas, len(candidates))])
