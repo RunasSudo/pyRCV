@@ -8,11 +8,20 @@ Standalone Python 3 scripts for counting various preferential voting elections, 
 
 Like preferential voting? Why not check out [helios-server-mixnet](https://github.com/RunasSudo/helios-server-mixnet), an end-to-end voter verifiable online voting system which supports preferential voting?
 
-## wright_stv.py
+## irv.py
 
+    ./irv.py election.blt
+
+Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winner under IRV.
+
+Supply the `--npr` option to use non-proportional representation, iteratively removing the winner from each round to produce an ordered list of winners – as for the filling of casual vacancies.
+
+## stv.py, wright_stv.py
+
+    ./stv.py election.blt
     ./wright_stv.py election.blt
 
-Takes as input a JSON file containing an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winners under Wright STV.
+Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winners under STV/Wright STV.
 
 ### Performing a countback
 These scripts can be used to perform a Hare-Clark-style countback to fill vacancies. Firstly, we must capture the quota of votes used to finally elect the candidate causing the vacancy:
