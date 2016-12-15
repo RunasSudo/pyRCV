@@ -290,21 +290,24 @@ class STVCounter:
 			count += 1
 	
 	@classmethod
-	def main(cls):
-		import utils.blt
-		
+	def getParser(cls):
 		import argparse
-		import json
-		import sys
 		
-		parser = argparse.ArgumentParser(description='Count an election using STV.')
-		
+		parser = argparse.ArgumentParser(description='Count an election using STV.', conflict_handler='resolve')
 		parser.add_argument('election', help='OpenSTV blt file')
 		parser.add_argument('--verbose', help='Display extra information', action='store_true')
 		parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >Hagenbach-Bischoff', choices=['geq-droop', 'gt-hb'], default='geq-droop')
 		parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
+		
+		return parser
+	
+	@classmethod
+	def main(cls):
+		import utils.blt
+		
+		parser = cls.getParser()
 		args = parser.parse_args()
 		
 		# Read blt
