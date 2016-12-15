@@ -16,9 +16,10 @@
 
 # I love the smell of Python 3 in the morning
 
-import copy
+import utils
+
 import itertools
-from fractions import Fraction
+import math
 
 # Represents the outcome of the current round
 class STVResult:
@@ -35,28 +36,30 @@ class STVCounter:
 		self.candidates = candidates
 		
 		self.exhausted = 0
-		
-		self.numclass = Fraction
 	
-	def verboseLog(self, string):
+	def verboseLog(self, string='', *args):
 		if self.args['verbose']:
-			print(string)
+			print(string.format(*args))
+	
+	def infoLog(self, string='', *args):
+		if not self.args['quiet']:
+			print(string.format(*args))
 	
 	def resetCount(self, ballots, candidates):
 		for ballot in ballots:
 			ballot.value = ballot.origValue
 		for candidate in candidates:
-			candidate.ctvv = self.numclass('0')
+			candidate.ctvv = utils.numclass('0')
 			candidate.ballots.clear()
 	
 	def distributePreferences(self, ballots, remainingCandidates):
-		exhausted = self.numclass('0')
+		exhausted = utils.numclass('0')
 		
 		for ballot in ballots:
 			isExhausted = True
 			for preference in ballot.preferences:
 				if preference in remainingCandidates:
-					self.verboseLog("   - Assigning {} votes to {} via {}".format(self.toNum(ballot.value), preference.name, ballot.prettyPreferences))
+					self.verboseLog('   - Assigning {} votes to {} via {}', self.toNum(ballot.value), preference.name, ballot.prettyPreferences)
 					
 					isExhausted = False
 					preference.ctvv += ballot.value
@@ -64,9 +67,9 @@ class STVCounter:
 					
 					break
 			if isExhausted:
-				self.verboseLog("   - Exhausted {} votes via {}".format(self.toNum(ballot.value), ballot.prettyPreferences))
+				self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.prettyPreferences)
 				exhausted += ballot.value
-				ballot.value = self.numclass('0')
+				ballot.value = utils.numclass('0')
 		
 		return exhausted
 	
@@ -77,13 +80,13 @@ class STVCounter:
 			return "{:.2f}".format(float(num))
 	
 	def totalVoteBallots(self, ballots):
-		tv = self.numclass('0')
+		tv = utils.numclass('0')
 		for ballot in ballots:
 			tv += ballot.value
 		return tv
 	
 	def totalVote(self, candidates):
-		tv = self.numclass('0')
+		tv = utils.numclass('0')
 		for candidate in candidates:
 			tv += candidate.ctvv
 		return tv
@@ -92,7 +95,7 @@ class STVCounter:
 		if '-hb' in self.args['quota']:
 			return totalVote / (numSeats + 1)
 		if '-droop' in self.args['quota']:
-			return self.numclass((totalVote / (numSeats + 1) + 1).__floor__())
+			return utils.numclass(math.floor(totalVote / (numSeats + 1) + 1))
 	
 	def calcQuota(self, remainingCandidates):
 		return self.calcQuotaNum(self.totalBallots, self.args['seats'])
@@ -114,29 +117,29 @@ class STVCounter:
 	
 	def printVotes(self, remainingCandidates, provisionallyElected):
 		remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
-		print()
+		self.infoLog()
 		for candidate in remainingCandidates:
-			print("    {}{}: {}".format("*" if candidate in provisionallyElected else " ", candidate.name, self.toNum(candidate.ctvv)))
-		print()
+			self.infoLog('    {}{}: {}', '*' if candidate in provisionallyElected else ' ', candidate.name, self.toNum(candidate.ctvv))
+		self.infoLog()
 	
 	def countUntilExclude(self, remainingCandidates, provisionallyElected):
 		roundProvisionallyElected = []
-		roundExhausted = self.numclass('0')
+		roundExhausted = utils.numclass('0')
 		
 		self.printVotes(remainingCandidates, provisionallyElected)
 		
 		quota = self.calcQuota(remainingCandidates)
 		
-		print("---- Total Votes: {}".format(self.toNum(self.totalBallots)))
-		print("----   Of which not exhausted: {}".format(self.toNum(self.totalVote(remainingCandidates))))
-		print("----   Of which exhausted: {}".format(self.toNum(self.exhausted + roundExhausted)))
-		print("---- Quota: {}".format(self.toNum(quota)))
-		print()
+		self.infoLog('---- Total Votes: {}', self.toNum(self.totalBallots))
+		self.infoLog('----   Of which not exhausted: {}', self.toNum(self.totalVote(remainingCandidates)))
+		self.infoLog('----   Of which exhausted: {}', self.toNum(self.exhausted + roundExhausted))
+		self.infoLog('---- Quota: {}', self.toNum(quota))
+		self.infoLog()
 		
 		remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 		for candidate in remainingCandidates:
 			if candidate not in (provisionallyElected + roundProvisionallyElected) and self.hasQuota(candidate, quota):
-				print("**** {} provisionally elected".format(candidate.name))
+				self.infoLog("**** {} provisionally elected", candidate.name)
 				roundProvisionallyElected.append(candidate)
 		
 		if self.args['fast'] and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
@@ -148,18 +151,18 @@ class STVCounter:
 			for candidate in mostVotesElected:
 				if candidate.ctvv > quota:
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
-					print("---- Transferring surplus from {} at value {}".format(candidate.name, self.toNum(multiplier)))
+					self.infoLog('---- Transferring surplus from {} at value {}', candidate.name, self.toNum(multiplier))
 					
 					for ballot in candidate.ballots:
 						transferTo = self.surplusTransfer(ballot.preferences, candidate, provisionallyElected + roundProvisionallyElected, remainingCandidates)
 						if transferTo == False:
-							self.verboseLog("   - Exhausted {} votes via {}".format(self.toNum(ballot.value), ballot.prettyPreferences))
+							self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.prettyPreferences)
 							ballot.value *= (1 - multiplier)
 							# roundExhausted += ballot.value * multiplier
 							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
-							self.verboseLog("   - Transferring {} votes to {} via {}".format(self.toNum(ballot.value), transferTo.name, ballot.prettyPreferences))
-							newBallot = copy.copy(ballot)
+							self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.prettyPreferences)
+							newBallot = ballot.copy()
 							ballot.value *= (1 - multiplier)
 							newBallot.value *= multiplier
 							transferTo.ctvv += newBallot.value
@@ -171,7 +174,7 @@ class STVCounter:
 					
 					for candidate in remainingCandidates:
 						if candidate not in (provisionallyElected + roundProvisionallyElected) and self.hasQuota(candidate, quota):
-							print("**** {} provisionally elected".format(candidate.name))
+							self.infoLog('**** {} provisionally elected', candidate.name)
 							roundProvisionallyElected.append(candidate)
 					
 					if self.args['fast'] and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
@@ -183,7 +186,7 @@ class STVCounter:
 			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 			for candidate in remainingCandidates:
 				if candidate not in (provisionallyElected + roundProvisionallyElected):
-					print("**** {} provisionally elected on {} quotas".format(candidate.name, self.toNum(candidate.ctvv / quota)))
+					self.infoLog('**** {} provisionally elected on {} quotas', candidate.name, self.toNum(candidate.ctvv / quota))
 					roundProvisionallyElected.append(candidate)
 			return STVResult([], roundProvisionallyElected, roundExhausted)
 		
@@ -191,7 +194,7 @@ class STVCounter:
 		remainingCandidates.sort(key=lambda k: k.ctvv)
 		grouped = [(x, list(y)) for x, y in itertools.groupby([x for x in remainingCandidates if x not in (provisionallyElected + roundProvisionallyElected)], lambda k: k.ctvv)] # ily python
 		
-		votesToExclude = self.numclass('0')
+		votesToExclude = utils.numclass('0')
 		for i in range(0, len(grouped)):
 			key, group = grouped[i]
 			votesToExclude += self.totalVote(group)
@@ -222,7 +225,7 @@ class STVCounter:
 		
 		if candidatesToExclude:
 			for candidate in candidatesToExclude:
-				print("---- Bulk excluding {}".format(candidate.name))
+				self.infoLog('---- Bulk excluding {}', candidate.name)
 			return STVResult(candidatesToExclude, roundProvisionallyElected, roundExhausted)
 		else:
 			# Just exclude one candidate then
@@ -236,7 +239,7 @@ class STVCounter:
 				print("---- Which candidate to exclude?")
 				toExclude = int(input())
 			
-			print("---- Excluding {}".format(remainingCandidates[toExclude].name))
+			self.infoLog('---- Excluding {}', remainingCandidates[toExclude].name)
 			return STVResult([remainingCandidates[toExclude]], roundProvisionallyElected, roundExhausted)
 	
 	def countVotes(self):
@@ -250,8 +253,8 @@ class STVCounter:
 		self.exhausted = self.distributePreferences(self.ballots, remainingCandidates)
 		
 		while True:
-			print()
-			print("== COUNT {}".format(count))
+			self.infoLog()
+			self.infoLog('== COUNT {}', count)
 			
 			roundResult = self.countUntilExclude(remainingCandidates, elected)
 			
@@ -267,10 +270,10 @@ class STVCounter:
 				for ballot in candidate.ballots:
 					transferTo = self.surplusTransfer(ballot.preferences, candidate, elected, remainingCandidates)
 					if transferTo == False:
-						self.verboseLog("   - Exhausted {} votes via {}".format(self.toNum(ballot.value), ballot.prettyPreferences))
+						self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.prettyPreferences)
 						self.exhausted += ballot.value
 					else:
-						self.verboseLog("   - Transferring {} votes to {} via {}".format(self.toNum(ballot.value), transferTo.name, ballot.prettyPreferences))
+						self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.prettyPreferences)
 						transferTo.ctvv += ballot.value
 						transferTo.ballots.append(ballot)
 			
@@ -280,7 +283,7 @@ class STVCounter:
 				remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 				for candidate in remainingCandidates:
 					if candidate not in elected:
-						print("**** {} provisionally elected on {} votes".format(candidate.name, self.toNum(candidate.ctvv)))
+						self.infoLog('**** {} provisionally elected on {} votes', candidate.name, self.toNum(candidate.ctvv))
 						elected.append(candidate)
 				return elected, self.exhausted
 			
@@ -296,7 +299,9 @@ class STVCounter:
 		parser = argparse.ArgumentParser(description='Count an election using STV.', conflict_handler='resolve')
 		parser.add_argument('election', help='OpenSTV blt file')
 		parser.add_argument('--verbose', help='Display extra information', action='store_true')
+		parser.add_argument('--quiet', help='Silence all output except the bare minimum', action='store_true')
 		parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
+		parser.add_argument('--float', help='Use fast, approximate floating point arithmetic instead of slow, accurate rational arithmetic', action='store_true')
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >Hagenbach-Bischoff', choices=['geq-droop', 'gt-hb'], default='geq-droop')
 		parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
@@ -309,6 +314,9 @@ class STVCounter:
 		
 		parser = cls.getParser()
 		args = parser.parse_args()
+		
+		if args.float:
+			utils.numclass = float
 		
 		# Read blt
 		with open(args.election, 'r') as electionFile:

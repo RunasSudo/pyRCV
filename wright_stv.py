@@ -30,8 +30,8 @@ class WrightSTVCounter(stv.STVCounter):
 		provisionallyElected = []
 		
 		while True:
-			print()
-			print("== COUNT {}".format(count))
+			self.infoLog()
+			self.infoLog("== COUNT {}".format(count))
 			
 			self.resetCount(self.ballots, remainingCandidates)
 			self.exhausted = self.distributePreferences(self.ballots, remainingCandidates)

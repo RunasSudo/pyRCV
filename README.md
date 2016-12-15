@@ -33,3 +33,7 @@ This command will output a new blt file containing only this quota of votes. We 
     ./irv.py countback.blt
 
 If some candidates have chosen not to contest the countback, you can add an `-ID` line into the blt file in the withdrawn candidates block, where `ID` is the 1-indexed position of the candidate in the candidate list.
+
+### Performance metrics
+
+On an HP Pavilion dv7-6108tx, the 22,366-vote [EVE Online CSM 11 election](https://community.eveonline.com/news/dev-blogs/csm-11-election-results/) is processed by the EVE Online reference implementation of Wright STV (bundled with the preceding link) in approximately 5.2 seconds. The same election is processed by pyRCV's equivalent `wright_stv.py --fast --float --noround` in approximately **2.3 seconds**!

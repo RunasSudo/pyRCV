@@ -13,18 +13,22 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from fractions import Fraction
-import sys
+import utils
 
 class Ballot:
 	def __init__(self, preferences, prettyPreferences, value=1):
 		self.preferences = preferences
 		self.prettyPreferences = prettyPreferences
 		
-		self.value = self.origValue = Fraction(value)
+		self.value = self.origValue = utils.numclass(value)
+	
+	def copy(self):
+		copy = Ballot(self.preferences, self.prettyPreferences, self.origValue)
+		copy.value = self.value
+		return copy
 
 class Candidate:
 	def __init__(self, name):
 		self.name = name
-		self.ctvv = Fraction('0')
+		self.ctvv = utils.numclass('0')
 		self.ballots = []
