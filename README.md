@@ -36,4 +36,4 @@ If some candidates have chosen not to contest the countback, you can add an `-ID
 
 ### Performance metrics
 
-On an HP Pavilion dv7-6108tx, the 22,366-vote [EVE Online CSM 11 election](https://community.eveonline.com/news/dev-blogs/csm-11-election-results/) is processed by the EVE Online reference implementation of Wright STV (bundled with the preceding link) in approximately 5.2 seconds. The same election is processed by pyRCV's equivalent `wright_stv.py --fast --float --noround` in approximately **2.3 seconds**!
+On an HP Pavilion dv7-6108tx, the 49,702-vote [EVE Online CSM8 election](https://community.eveonline.com/news/dev-blogs/csm8-election-statistics/) is processed by the EVE Online [reference implementation](http://cdn1.eveonline.com/community/csm/CSM11_Election.zip) of Wright STV in an average of 6.37 seconds. (±0.04s) The same election is processed by pyRCV's equivalent `wright_stv.py --fast --float --noround` in an average of **2.34 seconds!** (±0.02s) For comparison, using increased-accuracy rational arithmetic (omitting `--float`) takes an average of 8.64 seconds. (±0.04s)
