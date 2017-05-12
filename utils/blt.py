@@ -59,7 +59,7 @@ def readBLT(electionLines):
 	
 	return ballots, candidates, seats
 
-def writeBLT(ballots, candidates, seats, withdrawn=[], outFile=sys.stdout, stringify=str):
+def writeBLT(ballots, candidates, seats, name='', withdrawn=[], outFile=sys.stdout, stringify=str):
 	print("{} {}".format(len(candidates), seats), file=outFile)
 	
 	if len(withdrawn) > 0:
@@ -76,4 +76,4 @@ def writeBLT(ballots, candidates, seats, withdrawn=[], outFile=sys.stdout, strin
 	for candidate in candidates:
 		print('"{}"'.format(candidate.name), file=outFile)
 	
-	print('""', file=outFile)
+	print('"{}"'.format(name), file=outFile)

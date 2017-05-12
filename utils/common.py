@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #    Copyright © 2016 RunasSudo (Yingtong Li)
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -13,14 +14,14 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import utils
+from . import numclass
 
 class Ballot:
 	def __init__(self, preferences, prettyPreferences, value=1):
 		self.preferences = preferences
 		self.prettyPreferences = prettyPreferences
 		
-		self.value = self.origValue = utils.numclass(value)
+		self.value = self.origValue = numclass(value)
 	
 	def copy(self):
 		copy = Ballot(self.preferences, self.prettyPreferences, self.origValue)
@@ -30,5 +31,8 @@ class Ballot:
 class Candidate:
 	def __init__(self, name):
 		self.name = name
-		self.ctvv = utils.numclass('0')
+		self.ctvv = numclass('0')
 		self.ballots = []
+	
+	def __repr__(self):
+		return '<{}: {}>'.format(self.__class__.__name__, self.name)

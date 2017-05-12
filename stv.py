@@ -359,7 +359,7 @@ class STVCounter:
 			with open(args.countback[1], 'w') as countbackFile:
 				# use --noround to determine whether to use standard BLT format or rational BLT format
 				stringify = str if args.noround else float
-				utils.blt.writeBLT(candidate.ballots, candidates, 1, candidatesToExclude, countbackFile, stringify)
+				utils.blt.writeBLT(candidate.ballots, candidates, 1, '', candidatesToExclude, countbackFile, stringify)
 
 if __name__ == '__main__':
 	STVCounter.main()
