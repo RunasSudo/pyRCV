@@ -62,22 +62,22 @@ def readBLT(electionLines):
 def writeBLT(ballots, candidates, seats, name='', withdrawn=[], stringify=str):
 	electionLines = []
 	
-	electionLines.append("{} {}\n".format(len(candidates), seats))
+	electionLines.append("{} {}".format(len(candidates), seats))
 	
 	if len(withdrawn) > 0:
-		electionLines.append(" ".join(["-{}".format(candidates.index(candidate) + 1) for candidate in withdrawn]) + "\n")
+		electionLines.append(" ".join(["-{}".format(candidates.index(candidate) + 1) for candidate in withdrawn]))
 	
 	for ballot in ballots:
 		if ballot.preferences:
-			electionLines.append("{} {} 0\n".format(stringify(ballot.value), " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)))
+			electionLines.append("{} {} 0".format(stringify(ballot.value), " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)))
 		else:
-			electionLines.append("{} 0\n".format(stringify(ballot.value)))
+			electionLines.append("{} 0".format(stringify(ballot.value)))
 	
-	electionLines.append("0\n")
+	electionLines.append("0")
 	
 	for candidate in candidates:
-		electionLines.append('"{}"\n'.format(candidate.name))
+		electionLines.append('"{}"'.format(candidate.name))
 	
-	electionLines.append('"{}"\n'.format(name))
+	electionLines.append('"{}"'.format(name))
 	
 	return electionLines
