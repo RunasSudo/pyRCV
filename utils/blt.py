@@ -59,21 +59,25 @@ def readBLT(electionLines):
 	
 	return ballots, candidates, seats
 
-def writeBLT(ballots, candidates, seats, name='', withdrawn=[], outFile=sys.stdout, stringify=str):
-	print("{} {}".format(len(candidates), seats), file=outFile)
+def writeBLT(ballots, candidates, seats, name='', withdrawn=[], stringify=str):
+	electionLines = []
+	
+	electionLines.append("{} {}\n".format(len(candidates), seats))
 	
 	if len(withdrawn) > 0:
-		print(" ".join(["-{}".format(candidates.index(candidate) + 1) for candidate in withdrawn]), file=outFile)
+		electionLines.append(" ".join(["-{}".format(candidates.index(candidate) + 1) for candidate in withdrawn]) + "\n")
 	
 	for ballot in ballots:
 		if ballot.preferences:
-			print("{} {} 0".format(stringify(ballot.value), " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)), file=outFile)
+			electionLines.append("{} {} 0\n".format(stringify(ballot.value), " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)))
 		else:
-			print("{} 0".format(stringify(ballot.value)), file=outFile)
+			electionLines.append("{} 0\n".format(stringify(ballot.value)))
 	
-	print("0", file=outFile)
+	electionLines.append("0\n")
 	
 	for candidate in candidates:
-		print('"{}"'.format(candidate.name), file=outFile)
+		electionLines.append('"{}"\n'.format(candidate.name))
 	
-	print('"{}"'.format(name), file=outFile)
+	electionLines.append('"{}"\n'.format(name))
+	
+	return electionLines
