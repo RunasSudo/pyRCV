@@ -18,15 +18,18 @@
 
 from . import utils
 
+import base64
 import itertools
+import json
 import math
 
 # Represents the outcome of the current round
 class STVResult:
-	def __init__(self, excluded=[], provisionallyElected=[], exhausted=0):
+	def __init__(self, excluded, provisionallyElected, exhausted, tally):
 		self.excluded = excluded
 		self.provisionallyElected = provisionallyElected
 		self.exhausted = exhausted
+		self.tally = tally
 
 class STVCounter:
 	def __init__(self, ballots, candidates, **kwargs):
@@ -36,6 +39,16 @@ class STVCounter:
 		self.candidates = candidates
 		
 		self.exhausted = 0
+		
+		self.randdata = None
+		self.randbyte = 0
+		if self.args['randfile']:
+			with open(self.args['randfile'], 'r') as f:
+				self.randdata = base64.b64decode(json.load(f)['result']['random']['data'][0])
+			if self.args['randbyte']:
+				self.randbyte = int(self.args['randbyte'])
+		
+		self.tally_history = []
 	
 	def verboseLog(self, string='', *args):
 		if self.args['verbose']:
@@ -143,7 +156,7 @@ class STVCounter:
 				roundProvisionallyElected.append(candidate)
 		
 		if self.args['fast'] and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
-			return STVResult([], roundProvisionallyElected, roundExhausted)
+			return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
 		
 		mostVotesElected = sorted(roundProvisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		# While surpluses remain
@@ -178,7 +191,7 @@ class STVCounter:
 							roundProvisionallyElected.append(candidate)
 					
 					if self.args['fast'] and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
-						return STVResult([], roundProvisionallyElected, roundExhausted)
+						return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
 			mostVotesElected = sorted(roundProvisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
 		# We only want to do this after preferences have been distributed
@@ -188,7 +201,7 @@ class STVCounter:
 				if candidate not in (provisionallyElected + roundProvisionallyElected):
 					self.infoLog('**** {} provisionally elected on {} quotas', candidate.name, self.toNum(candidate.ctvv / quota))
 					roundProvisionallyElected.append(candidate)
-			return STVResult([], roundProvisionallyElected, roundExhausted)
+			return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
 		
 		# Bulk exclude as many candidates as possible
 		remainingCandidates.sort(key=lambda k: k.ctvv)
@@ -226,21 +239,60 @@ class STVCounter:
 		if candidatesToExclude:
 			for candidate in candidatesToExclude:
 				self.infoLog('---- Bulk excluding {}', candidate.name)
-			return STVResult(candidatesToExclude, roundProvisionallyElected, roundExhausted)
+			return STVResult(candidatesToExclude, roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
 		else:
 			# Just exclude one candidate then
 			# Check for a tie
-			toExclude = 0
 			if len(remainingCandidates) > 1 and remainingCandidates[0].ctvv == remainingCandidates[1].ctvv:
+				# There is a tie. Can we break it?
+				toExclude = None
+				
+				tiedCandidates = [x for x in remainingCandidates if x.ctvv == remainingCandidates[0].ctvv]
+				
 				print("---- There is a tie for last place:")
-				for i in range(0, len(remainingCandidates)):
-					if remainingCandidates[i].ctvv == remainingCandidates[0].ctvv:
-						print("     {}. {}".format(i, remainingCandidates[i].name))
-				print("---- Which candidate to exclude?")
-				toExclude = int(input())
+				for i in range(0, len(tiedCandidates)):
+					print("     {}. {}".format(i, tiedCandidates[i].name))
+				
+				tie_methods = iter(self.args['ties'])
+				
+				while toExclude is None:
+					tie_method = next(tie_methods, None)
+					if tie_method is None:
+						print("---- No resolution for tie, and no further tie-breaking methods specified")
+						print("---- Tie enable manual breaking of ties, append 'manual' to the --ties option")
+						return False
+					
+					if tie_method == 'backward':
+						# Was there a previous round where any tied candidate was behind the others?
+						for previous_tally in reversed(self.tally_history):
+							prev_tally_min = min(prev_ctvv for cand, prev_ctvv in previous_tally.items() if cand in tiedCandidates)
+							prev_lowest = [cand for cand, prev_ctvv in previous_tally.items() if prev_ctvv == prev_tally_min]
+							if len(prev_lowest) == 1:
+								print("---- Tie broken backwards")
+								toExclude = remainingCandidates.index(prev_lowest[0])
+								break # inner for
+					
+					if tie_method == 'random':
+						print("---- Tie broken randomly")
+						max_byte = (256 // len(tiedCandidates)) * len(tiedCandidates)
+						print("     Getting random byte {}".format(self.randbyte))
+						while self.randdata[self.randbyte] >= max_byte:
+							self.randbyte += 1
+							print("     Getting random byte {}".format(self.randbyte))
+						toExclude = remainingCandidates.index(tiedCandidates[self.randdata[self.randbyte] % len(tiedCandidates)])
+						print("     Byte {} is {}, mod {} is {}".format(self.randbyte, self.randdata[self.randbyte], len(tiedCandidates), toExclude))
+						self.randbyte += 1
+					
+					if tie_method == 'manual':
+						print("---- No resolution for tie")
+						print("---- Which candidate to exclude?")
+						toExclude = remainingCandidates.index(tiedCandidates[int(input())])
+			else:
+				# No tie. Exclude the lowest candidate
+				toExclude = 0
 			
 			self.infoLog('---- Excluding {}', remainingCandidates[toExclude].name)
-			return STVResult([remainingCandidates[toExclude]], roundProvisionallyElected, roundExhausted)
+			return STVResult([remainingCandidates[toExclude]], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
 	
 	def countVotes(self):
 		self.totalBallots = self.totalVoteBallots(self.ballots)
@@ -257,6 +309,7 @@ class STVCounter:
 			self.infoLog('== COUNT {}', count)
 			
 			roundResult = self.countUntilExclude(remainingCandidates, elected)
+			self.tally_history.append(roundResult.tally)
 			
 			# Process round
 			
@@ -297,20 +350,23 @@ class STVCounter:
 		import argparse
 		
 		parser = argparse.ArgumentParser(description='Count an election using STV.', conflict_handler='resolve')
-		parser.add_argument('election', help='OpenSTV blt file')
+		parser.add_argument('--election', required=True, help='OpenSTV blt file')
 		parser.add_argument('--verbose', help='Display extra information', action='store_true')
 		parser.add_argument('--quiet', help='Silence all output except the bare minimum', action='store_true')
 		parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
 		parser.add_argument('--float', help='Use fast, approximate floating point arithmetic instead of slow, accurate rational arithmetic', action='store_true')
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >Hagenbach-Bischoff', choices=['geq-droop', 'gt-hb'], default='geq-droop')
+		parser.add_argument('--ties', help='How to break ties, in preference order', choices=['manual', 'backward', 'random'], nargs='+', default=['manual'])
+		parser.add_argument('--randfile', help='random.org signed JSON data')
+		parser.add_argument('--randbyte', help='Index of byte in random data to start at', default='0')
 		parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
 		
 		return parser
 	
 	@classmethod
 	def main(cls):
-		import utils.blt
+		from .utils import blt
 		
 		parser = cls.getParser()
 		args = parser.parse_args()
@@ -321,7 +377,7 @@ class STVCounter:
 		# Read blt
 		with open(args.election, 'r') as electionFile:
 			electionLines = electionFile.read().splitlines()
-			ballots, candidates, args.seats = utils.blt.readBLT(electionLines)
+			ballots, candidates, args.seats = blt.readBLT(electionLines)
 		
 		counter = cls(ballots, candidates, **vars(args))
 		
