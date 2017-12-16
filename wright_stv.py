@@ -16,7 +16,7 @@
 
 # I love the smell of Python 3 in the morning
 
-import stv
+from . import stv
 
 class WrightSTVCounter(stv.STVCounter):
 	def calcQuota(self, remainingCandidates):

@@ -16,7 +16,7 @@
 
 # I love the smell of Python 3 in the morning
 
-import stv
+from . import stv
 
 class IRVCounter(stv.STVCounter):
 	def __init__(self, *args, **kwargs):
@@ -40,7 +40,7 @@ class IRVCounter(stv.STVCounter):
 	
 	@classmethod
 	def main(cls):
-		import utils.blt
+		from .utils import blt
 		
 		parser = cls.getParser()
 		args = parser.parse_args()
@@ -48,7 +48,7 @@ class IRVCounter(stv.STVCounter):
 		# Read blt
 		with open(args.election, 'r') as electionFile:
 			electionLines = electionFile.read().splitlines()
-			ballots, candidates, args.seats = utils.blt.readBLT(electionLines)
+			ballots, candidates, args.seats = blt.readBLT(electionLines)
 		
 		counter = cls(ballots, candidates, **vars(args))
 		

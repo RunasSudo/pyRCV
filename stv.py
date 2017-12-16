@@ -16,7 +16,7 @@
 
 # I love the smell of Python 3 in the morning
 
-import utils
+from . import utils
 
 import itertools
 import math
