@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#    Copyright © 2016 RunasSudo (Yingtong Li)
+#    Copyright © 2016-2018 RunasSudo (Yingtong Li)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as published by
@@ -17,6 +17,7 @@
 # I love the smell of Python 3 in the morning
 
 from . import stv
+from . import version
 
 class IRVCounter(stv.STVCounter):
 	def __init__(self, *args, **kwargs):
@@ -42,6 +43,9 @@ class IRVCounter(stv.STVCounter):
 	def main(cls):
 		from .utils import blt
 		
+		print('=== pyRCV {} ==='.format(version.VERSION))
+		print()
+		
 		parser = cls.getParser()
 		args = parser.parse_args()
 		
@@ -55,6 +59,7 @@ class IRVCounter(stv.STVCounter):
 		if args.verbose:
 			for ballot in ballots:
 				print("{} : {}".format(counter.toNum(ballot.value), ",".join([x.name for x in ballot.preferences])))
+			print()
 		
 		nprElected = []
 		for i in range(0, len(candidates) if args.npr else 1):
@@ -75,6 +80,9 @@ class IRVCounter(stv.STVCounter):
 		
 		if not args.npr:
 			print("---- Exhausted: {}".format(counter.toNum(exhausted)))
+		
+		print()
+		print("=== Tally computed by pyRCV {} ===".format(version.VERSION))
 
 if __name__ == '__main__':
 	IRVCounter.main()

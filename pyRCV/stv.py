@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#    Copyright © 2016 RunasSudo (Yingtong Li)
+#    Copyright © 2016-2018 RunasSudo (Yingtong Li)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as published by
@@ -17,6 +17,7 @@
 # I love the smell of Python 3 in the morning
 
 from . import utils
+from . import version
 
 import base64
 import itertools
@@ -371,6 +372,9 @@ class STVCounter:
 	def main(cls):
 		from .utils import blt
 		
+		print('=== pyRCV {} ==='.format(version.VERSION))
+		print()
+		
 		parser = cls.getParser()
 		args = parser.parse_args()
 		
@@ -387,6 +391,7 @@ class STVCounter:
 		if args.verbose:
 			for ballot in ballots:
 				print("{} : {}".format(counter.toNum(ballot.value), ",".join([x.name for x in ballot.preferences])))
+			print()
 		
 		elected, exhausted = counter.countVotes()
 		print()
@@ -419,6 +424,9 @@ class STVCounter:
 				# use --noround to determine whether to use standard BLT format or rational BLT format
 				stringify = str if args.noround else float
 				print('\n'.join(utils.blt.writeBLT(candidate.ballots, candidates, 1, '', candidatesToExclude, stringify)), file=countbackFile)
+		
+		print()
+		print("=== Tally computed by pyRCV {} ===".format(version.VERSION))
 
 if __name__ == '__main__':
 	STVCounter.main()
