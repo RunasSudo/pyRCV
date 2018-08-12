@@ -16,56 +16,23 @@
 
 # I love the smell of Python 3 in the morning
 
-from . import utils
-from . import version
-
-import base64
 import itertools
-import json
-import math
-
 
 from .utils import common
 from .stv import STVResult
 from . import stv
+from . import utils
+from . import version
 
-class MeekSTVCounter:
-	def __init__(self, ballots, candidates, **kwargs):
-		self.args = kwargs
+class MeekSTVCounter(stv.STVCounter):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 		
-		self.ballots = ballots
-		self.candidates = candidates
-		
-		for candidate in candidates:
+		for candidate in self.candidates:
 			candidate.keep_value = utils.numclass('1')
-		
-		self.exhausted = utils.numclass('0')
-		
-		self.randdata = None
-		self.randbyte = 0
-		if self.args.get('randfile', None):
-			with open(self.args['randfile'], 'r') as f:
-				self.randdata = base64.b64decode(json.load(f)['result']['random']['data'][0])
-			if self.args.get('randbyte', None):
-				self.randbyte = int(self.args['randbyte'])
-		
-		self.tally_history = []
-	
-	def log(self, string='', *args):
-		print(string.format(*args))
-	
-	def verboseLog(self, string='', *args):
-		if self.args.get('verbose', False):
-			self.log(string, *args)
-	
-	def infoLog(self, string='', *args):
-		if not self.args.get('quiet', False):
-			self.log(string, *args)
 	
 	def resetCount(self, ballots, candidates):
 		for candidate in candidates:
-			#candidate.keep_value = utils.numclass('1')
-			
 			candidate.ctvv = utils.numclass('0')
 			candidate.ballots.clear()
 	
@@ -94,46 +61,9 @@ class MeekSTVCounter:
 		
 		return exhausted
 	
-	def toNum(self, num):
-		if self.args.get('noround', False):
-			return str(num)
-		else:
-			return "{:.2f}".format(float(num))
-	
-	def totalVoteBallots(self, ballots):
-		tv = utils.numclass('0')
-		for ballot in ballots:
-			tv += ballot.value
-		return tv
-	
-	def totalVote(self, candidates):
-		tv = utils.numclass('0')
-		for candidate in candidates:
-			tv += candidate.ctvv
-		return tv
-	
-	def calcQuotaNum(self, totalVote, numSeats):
-		if '-hb' in self.args['quota']:
-			return totalVote / (numSeats + utils.numclass('1'))
-		if '-droop' in self.args['quota']:
-			return utils.numclass(math.floor(totalVote / (numSeats + utils.numclass('1')) + utils.numclass('1')))
-	
 	def calcQuota(self, remainingCandidates):
 		# Adjust quota according to excess, i.e. use total vote
 		return self.calcQuotaNum(self.totalVote(remainingCandidates), self.args['seats'])
-	
-	def hasQuota(self, candidate, quota):
-		if 'gt-' in self.args['quota']:
-			return candidate.ctvv > quota
-		if 'geq-' in self.args['quota']:
-			return candidate.ctvv >= quota
-	
-	def printVotes(self, remainingCandidates, provisionallyElected):
-		remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
-		self.infoLog()
-		for candidate in remainingCandidates:
-			self.infoLog('    {}{}: {}', '*' if candidate in provisionallyElected else ' ', candidate.name, self.toNum(candidate.ctvv))
-		self.infoLog()
 	
 	def countUntilExclude(self, remainingCandidates, provisionallyElected):
 		roundProvisionallyElected = []
@@ -336,25 +266,6 @@ class MeekSTVCounter:
 				provisionallyElected.append(candidate)
 			
 			return provisionallyElected, self.exhausted
-	
-	@classmethod
-	def getParser(cls):
-		import argparse
-		
-		parser = argparse.ArgumentParser(description='Count an election using STV.', conflict_handler='resolve')
-		parser.add_argument('--election', required=True, help='OpenSTV blt file')
-		parser.add_argument('--verbose', help='Display extra information', action='store_true')
-		parser.add_argument('--quiet', help='Silence all output except the bare minimum', action='store_true')
-		parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
-		parser.add_argument('--float', help='Use fast, approximate floating point arithmetic instead of slow, accurate rational arithmetic', action='store_true')
-		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
-		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >Hagenbach-Bischoff', choices=['geq-droop', 'gt-hb'], default='geq-droop')
-		parser.add_argument('--ties', help='How to break ties, in preference order', choices=['manual', 'backward', 'random'], nargs='+', default=['manual'])
-		parser.add_argument('--randfile', help='random.org signed JSON data')
-		parser.add_argument('--randbyte', help='Index of byte in random data to start at', default='0')
-		parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
-		
-		return parser
 	
 	@classmethod
 	def main(cls):

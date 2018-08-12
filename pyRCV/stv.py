@@ -39,7 +39,7 @@ class STVCounter:
 		self.ballots = ballots
 		self.candidates = candidates
 		
-		self.exhausted = 0
+		self.exhausted = utils.numclass('0')
 		
 		self.randdata = None
 		self.randbyte = 0
@@ -110,9 +110,9 @@ class STVCounter:
 	
 	def calcQuotaNum(self, totalVote, numSeats):
 		if '-hb' in self.args['quota']:
-			return totalVote / (numSeats + 1)
+			return totalVote / (numSeats + utils.numclass('1'))
 		if '-droop' in self.args['quota']:
-			return utils.numclass(math.floor(totalVote / (numSeats + 1) + 1))
+			return utils.numclass(math.floor(totalVote / (numSeats + utils.numclass('1')) + utils.numclass('1')))
 	
 	def calcQuota(self, remainingCandidates):
 		return self.calcQuotaNum(self.totalBallots, self.args['seats'])
@@ -360,7 +360,7 @@ class STVCounter:
 		parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
 		parser.add_argument('--float', help='Use fast, approximate floating point arithmetic instead of slow, accurate rational arithmetic', action='store_true')
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
-		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >Hagenbach-Bischoff', choices=['geq-droop', 'gt-hb'], default='geq-droop')
+		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop, >Hagenbach-Bischoff, etc.', choices=['geq-droop', 'gt-hb', 'geq-hb'], default='geq-droop')
 		parser.add_argument('--ties', help='How to break ties, in preference order', choices=['manual', 'backward', 'random'], nargs='+', default=['manual'])
 		parser.add_argument('--randfile', help='random.org signed JSON data')
 		parser.add_argument('--randbyte', help='Index of byte in random data to start at', default='0')
