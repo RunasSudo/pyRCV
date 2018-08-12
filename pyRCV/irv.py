@@ -25,15 +25,13 @@ class IRVCounter(stv.STVCounter):
 		
 		self.args['seats'] = 1
 	
-	def calcQuota(self, remainingCandidates):
-		return self.calcQuotaNum(self.totalVote(remainingCandidates), self.args['seats'])
-	
 	@classmethod
 	def getParser(cls):
 		import argparse
 		
 		parser = super().getParser()
 		parser.add_argument('--quota', help=argparse.SUPPRESS, default='gt-hb')
+		parser.add_argument('--quota-prog', help=argparse.SUPPRESS, action='store_true', default=True)
 		parser.add_argument('--countback', help=argparse.SUPPRESS)
 		parser.add_argument('--npr', help='Generate a list of winners', action='store_true')
 		

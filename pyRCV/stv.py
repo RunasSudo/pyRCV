@@ -16,6 +16,7 @@
 
 # I love the smell of Python 3 in the morning
 
+from .utils import common
 from . import utils
 from . import version
 
@@ -62,9 +63,7 @@ class STVCounter:
 		if not self.args.get('quiet', False):
 			self.log(string, *args)
 	
-	def resetCount(self, ballots, candidates):
-		for ballot in ballots:
-			ballot.value = ballot.origValue
+	def resetCount(self, candidates):
 		for candidate in candidates:
 			candidate.ctvv = utils.numclass('0')
 			candidate.ballots.clear()
@@ -73,20 +72,24 @@ class STVCounter:
 		exhausted = utils.numclass('0')
 		
 		for ballot in ballots:
-			isExhausted = True
+			assigned = utils.numclass('0')
+			last_preference = None
 			for preference in ballot.preferences:
-				if preference in remainingCandidates:
-					self.verboseLog('   - Assigning {} votes to {} via {}', self.toNum(ballot.value), preference.name, ballot.prettyPreferences)
+				if preference.keep_value > utils.numclass('0'):
+					value = (ballot.value - assigned) * preference.keep_value
 					
-					isExhausted = False
-					preference.ctvv += ballot.value
-					preference.ballots.append(ballot)
+					self.verboseLog('   - Assigning {} of {} votes to {} at value {} via {}', self.toNum(ballot.value - assigned), self.toNum(ballot.value), preference.name, self.toNum(preference.keep_value), ballot.prettyPreferences)
 					
+					preference.ctvv += value
+					assigned += value
+					preference.ballots.append(common.CandidateBallot(ballot, value))
+				
+				if assigned >= ballot.value:
 					break
-			if isExhausted:
-				self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.prettyPreferences)
-				exhausted += ballot.value
-				ballot.value = utils.numclass('0')
+			
+			if assigned < ballot.value:
+				self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value - assigned), ballot.prettyPreferences)
+				exhausted += ballot.value - assigned
 		
 		return exhausted
 	
@@ -115,7 +118,10 @@ class STVCounter:
 			return utils.numclass(math.floor(totalVote / (numSeats + utils.numclass('1')) + utils.numclass('1')))
 	
 	def calcQuota(self, remainingCandidates):
-		return self.calcQuotaNum(self.totalBallots, self.args['seats'])
+		if self.args['quota_prog']:
+			return self.calcQuotaNum(self.totalVote(remainingCandidates), self.args['seats'])
+		else:
+			return self.calcQuotaNum(self.totalBallots, self.args['seats'])
 	
 	def hasQuota(self, candidate, quota):
 		if 'gt-' in self.args['quota']:
@@ -139,7 +145,7 @@ class STVCounter:
 			self.infoLog('    {}{}: {}', '*' if candidate in provisionallyElected else ' ', candidate.name, self.toNum(candidate.ctvv))
 		self.infoLog()
 	
-	def countUntilExclude(self, remainingCandidates, provisionallyElected):
+	def countUntilSurpluses(self, remainingCandidates, provisionallyElected):
 		roundProvisionallyElected = []
 		roundExhausted = utils.numclass('0')
 		
@@ -159,9 +165,9 @@ class STVCounter:
 				self.infoLog("**** {} provisionally elected", candidate.name)
 				roundProvisionallyElected.append(candidate)
 		
-		if self.args.get('fast', False) and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
-			return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
-		
+		return quota, roundProvisionallyElected, roundExhausted
+	
+	def countDistributeSurpluses(self, remainingCandidates, provisionallyElected, quota, roundProvisionallyElected):
 		mostVotesElected = sorted(roundProvisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		# While surpluses remain
 		while mostVotesElected and mostVotesElected[0].ctvv > quota:
@@ -171,17 +177,16 @@ class STVCounter:
 					self.infoLog('---- Transferring surplus from {} at value {}', candidate.name, self.toNum(multiplier))
 					
 					for ballot in candidate.ballots:
-						transferTo = self.surplusTransfer(ballot.preferences, candidate, provisionallyElected + roundProvisionallyElected, remainingCandidates)
+						transferTo = self.surplusTransfer(ballot.ballot.preferences, candidate, provisionallyElected + roundProvisionallyElected, remainingCandidates)
 						if transferTo == False:
-							self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.prettyPreferences)
+							self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.ballot.prettyPreferences)
 							ballot.value *= (1 - multiplier)
 							# roundExhausted += ballot.value * multiplier
 							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
-							self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.prettyPreferences)
-							newBallot = ballot.copy()
+							self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.ballot.prettyPreferences)
+							newBallot = common.CandidateBallot(ballot.ballot, ballot.value * multiplier)
 							ballot.value *= (1 - multiplier)
-							newBallot.value *= multiplier
 							transferTo.ctvv += newBallot.value
 							transferTo.ballots.append(newBallot)
 					
@@ -195,9 +200,23 @@ class STVCounter:
 							roundProvisionallyElected.append(candidate)
 					
 					if self.args.get('fast', False) and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
-						return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
+						return roundProvisionallyElected
 			mostVotesElected = sorted(roundProvisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
+		return roundProvisionallyElected
+	
+	def countUntilExclude(self, remainingCandidates, provisionallyElected):
+		quota, roundProvisionallyElected, roundExhausted = self.countUntilSurpluses(remainingCandidates, provisionallyElected)
+		
+		if self.args.get('fast', False) and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
+			return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
+		
+		roundProvisionallyElected = self.countDistributeSurpluses(remainingCandidates, provisionallyElected, quota, roundProvisionallyElected)
+		
+		if self.args.get('fast', False) and (len(provisionallyElected) + len(roundProvisionallyElected)) >= self.args['seats']:
+			return STVResult([], roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
+		
+		# Elect all remaining candidates if applicable
 		# We only want to do this after preferences have been distributed
 		if not self.args.get('fast', False) and len(remainingCandidates) <= self.args['seats']:
 			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
@@ -305,7 +324,7 @@ class STVCounter:
 		remainingCandidates = self.candidates[:]
 		elected = []
 		
-		self.resetCount(self.ballots, remainingCandidates)
+		self.resetCount(remainingCandidates)
 		self.exhausted = self.distributePreferences(self.ballots, remainingCandidates)
 		
 		while True:
@@ -325,12 +344,12 @@ class STVCounter:
 				remainingCandidates.remove(candidate)
 			for candidate in roundResult.excluded:
 				for ballot in candidate.ballots:
-					transferTo = self.surplusTransfer(ballot.preferences, candidate, elected, remainingCandidates)
+					transferTo = self.surplusTransfer(ballot.ballot.preferences, candidate, elected, remainingCandidates)
 					if transferTo == False:
-						self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.prettyPreferences)
+						self.verboseLog('   - Exhausted {} votes via {}', self.toNum(ballot.value), ballot.ballot.prettyPreferences)
 						self.exhausted += ballot.value
 					else:
-						self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.prettyPreferences)
+						self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.ballot.prettyPreferences)
 						transferTo.ctvv += ballot.value
 						transferTo.ballots.append(ballot)
 			
@@ -361,6 +380,7 @@ class STVCounter:
 		parser.add_argument('--float', help='Use fast, approximate floating point arithmetic instead of slow, accurate rational arithmetic', action='store_true')
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop, >Hagenbach-Bischoff, etc.', choices=['geq-droop', 'gt-hb', 'geq-hb'], default='geq-droop')
+		parser.add_argument('--quota-prog', help='Use a progressively-reducing quota', action='store_true')
 		parser.add_argument('--ties', help='How to break ties, in preference order', choices=['manual', 'backward', 'random'], nargs='+', default=['manual'])
 		parser.add_argument('--randfile', help='random.org signed JSON data')
 		parser.add_argument('--randbyte', help='Index of byte in random data to start at', default='0')

@@ -10,30 +10,41 @@ Like preferential voting? Why not check out [helios-server-mixnet](https://githu
 
 ## irv.py
 
-    ./irv.py --election election.blt
+    python -m pyRCV.irv --election election.blt
 
 Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winner under IRV.
 
 Supply the `--npr` option to use non-proportional representation, iteratively removing the winner from each round to produce an ordered list of winners – as for the filling of casual vacancies.
 
-## stv.py, wright_stv.py, meek_stv.py
+## stv.py
 
-    ./stv.py --election election.blt
-    ./wright_stv.py --election election.blt
-    ./meek_stv.py --election election.blt --quota geq-hb --float
+    python -m pyRCV.stv --election election.blt
 
-Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winners under STV/Wright STV/Meek STV.
+Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winners under STV.
 
-(Note that because Meek STV is quite computationally expensive, the `--float` option is recommended to disable rational arithmetic.)
+The counting method is highly configurable to a wide range of STV implementations. See `./stv.py --help` for more information.
+
+### wright_stv.py
+
+    python -m pyRCV.wright_stv --election election.blt --quota-prog
+
+The same for Wright STV. Note that Wright STV uses a progressively-reducing quota, so `--quota-prog` should be specified.
+
+### meek_stv.py
+
+    python -m pyRCV.meek_stv --election election.blt --quota geq-hb --quota-prog --float
+
+The same for Meek STV. Note that Meek STV uses a progressively-reducing quota (`--quota-prog`), and the quota is the unrounded Droop (Hagenbach-Bischoff) quota (`--quota geq-hb`). Note also that Meek STV is quite computationally expensive, so the `--float` option is recommended to disable rational arithmetic.
 
 ### Performing a countback
+
 These scripts can be used to perform a Hare-Clark-style countback to fill vacancies. Firstly, we must capture the quota of votes used to finally elect the candidate causing the vacancy:
 
-    ./wright_stv.py --election election.blt --countback CandidateName countback.blt
+    python -m pyRCV.wright_stv --election election.blt --countback CandidateName countback.blt
 
 This command will output a new blt file containing only this quota of votes. We can then run an instant-runoff election with these votes.
 
-    ./irv.py --election countback.blt
+    python -m pyRCV.irv --election countback.blt
 
 If some candidates have chosen not to contest the countback, you can add an `-ID` line into the blt file in the withdrawn candidates block, where `ID` is the 1-indexed position of the candidate in the candidate list.
 

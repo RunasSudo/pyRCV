@@ -21,17 +21,13 @@ class Ballot:
 		self.preferences = preferences
 		self.prettyPreferences = prettyPreferences
 		
-		self.value = self.origValue = numclass(value)
-	
-	def copy(self):
-		copy = Ballot(self.preferences, self.prettyPreferences, self.origValue)
-		copy.value = self.value
-		return copy
+		self.value = numclass(value)
 
 class Candidate:
 	def __init__(self, name):
 		self.name = name
 		self.ctvv = numclass('0')
+		self.keep_value = numclass('1')
 		self.ballots = []
 	
 	def __repr__(self):

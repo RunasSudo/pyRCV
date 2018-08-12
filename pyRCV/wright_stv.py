@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#    Copyright © 2016 RunasSudo (Yingtong Li)
+#    Copyright © 2016-2018 RunasSudo (Yingtong Li)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as published by
@@ -19,9 +19,6 @@
 from . import stv
 
 class WrightSTVCounter(stv.STVCounter):
-	def calcQuota(self, remainingCandidates):
-		return self.calcQuotaNum(self.totalVote(remainingCandidates), self.args['seats'])
-	
 	def countVotes(self):
 		self.totalBallots = self.totalVoteBallots(self.ballots)
 		
@@ -33,7 +30,7 @@ class WrightSTVCounter(stv.STVCounter):
 			self.infoLog()
 			self.infoLog("== COUNT {}".format(count))
 			
-			self.resetCount(self.ballots, remainingCandidates)
+			self.resetCount(remainingCandidates)
 			self.exhausted = self.distributePreferences(self.ballots, remainingCandidates)
 			
 			roundResult = self.countUntilExclude(remainingCandidates, provisionallyElected)
