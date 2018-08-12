@@ -10,27 +10,30 @@ Like preferential voting? Why not check out [helios-server-mixnet](https://githu
 
 ## irv.py
 
-    ./irv.py election.blt
+    ./irv.py --election election.blt
 
 Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winner under IRV.
 
 Supply the `--npr` option to use non-proportional representation, iteratively removing the winner from each round to produce an ordered list of winners – as for the filling of casual vacancies.
 
-## stv.py, wright_stv.py
+## stv.py, wright_stv.py, meek_stv.py
 
-    ./stv.py election.blt
-    ./wright_stv.py election.blt
+    ./stv.py --election election.blt
+    ./wright_stv.py --election election.blt
+    ./meek_stv.py --election election.blt --quota geq-hb --float
 
-Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winners under STV/Wright STV.
+Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and calculates the winners under STV/Wright STV/Meek STV.
+
+(Note that because Meek STV is quite computationally expensive, the `--float` option is recommended to disable rational arithmetic.)
 
 ### Performing a countback
 These scripts can be used to perform a Hare-Clark-style countback to fill vacancies. Firstly, we must capture the quota of votes used to finally elect the candidate causing the vacancy:
 
-    ./wright_stv.py election.blt --countback CandidateName countback.blt
+    ./wright_stv.py --election election.blt --countback CandidateName countback.blt
 
 This command will output a new blt file containing only this quota of votes. We can then run an instant-runoff election with these votes.
 
-    ./irv.py countback.blt
+    ./irv.py --election countback.blt
 
 If some candidates have chosen not to contest the countback, you can add an `-ID` line into the blt file in the withdrawn candidates block, where `ID` is the 1-indexed position of the candidate in the candidate list.
 
