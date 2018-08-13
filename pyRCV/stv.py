@@ -306,6 +306,15 @@ class STVCounter:
 						self.log("     Byte {} is {}, mod {} is {}".format(self.randbyte, self.randdata[self.randbyte], len(tiedCandidates), toExclude))
 						self.randbyte += 1
 					
+					if tie_method == 'all':
+						if len(remainingCandidates) - len(tiedCandidates) < self.args['seats']:
+							self.log("---- Unable to exclude all tied candidates")
+						else:
+							self.log("---- Excluding all tied candidates")
+							for candidate in tiedCandidates:
+								self.infoLog('---- Excluding {}', candidate.name)
+							return STVResult(tiedCandidates, roundProvisionallyElected, roundExhausted, {cand: cand.ctvv for cand in remainingCandidates})
+					
 					if tie_method == 'manual':
 						self.log("---- No resolution for tie")
 						self.log("---- Which candidate to exclude?")
@@ -381,7 +390,7 @@ class STVCounter:
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop, >Hagenbach-Bischoff, etc.', choices=['geq-droop', 'gt-hb', 'geq-hb'], default='geq-droop')
 		parser.add_argument('--quota-prog', help='Use a progressively-reducing quota', action='store_true')
-		parser.add_argument('--ties', help='How to break ties, in preference order', choices=['manual', 'backward', 'random'], nargs='+', default=['manual'])
+		parser.add_argument('--ties', help='How to break ties, in preference order', choices=['manual', 'backward', 'random', 'all'], nargs='+', default=['manual'])
 		parser.add_argument('--randfile', help='random.org signed JSON data')
 		parser.add_argument('--randbyte', help='Index of byte in random data to start at', default='0')
 		parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
