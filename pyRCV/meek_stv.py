@@ -29,7 +29,7 @@ class MeekSTVCounter(stv.STVCounter):
 		mostVotesElected = sorted(roundProvisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		self.infoLog('---- Distributing surpluses')
 		# While surpluses remain
-		while mostVotesElected and any(abs(c.ctvv - quota) > utils.numclass('0.00001') for c in mostVotesElected):
+		while mostVotesElected and any(abs(c.ctvv - quota) > utils.num('0.00001') for c in mostVotesElected):
 			# Recalculate weights
 			for candidate in mostVotesElected:
 				self.verboseLog('     Reducing {} keep value from {} to {}', candidate.name, self.toNum(candidate.keep_value), self.toNum(candidate.keep_value * quota / candidate.ctvv))
@@ -37,7 +37,7 @@ class MeekSTVCounter(stv.STVCounter):
 			
 			# Redistribute votes
 			#for candidate in remainingCandidates:
-			#	candidate.ctvv = utils.numclass('0')
+			#	candidate.ctvv = utils.num('0')
 			#	candidate.ballots.clear()
 			self.resetCount(remainingCandidates)
 			roundExhausted = self.distributePreferences(self.ballots, remainingCandidates)
@@ -81,7 +81,7 @@ class MeekSTVCounter(stv.STVCounter):
 			if roundResult.excluded:
 				# Reset and reiterate
 				for candidate in roundResult.excluded:
-					candidate.keep_value = utils.numclass('0')
+					candidate.keep_value = utils.num('0')
 					remainingCandidates.remove(candidate)
 				
 				if self.args['fast'] and len(remainingCandidates) <= self.args['seats']:
@@ -109,16 +109,19 @@ class MeekSTVCounter(stv.STVCounter):
 	
 	@classmethod
 	def main(cls):
-		from .utils import blt
-		
 		print('=== pyRCV {} ==='.format(version.VERSION))
 		print()
 		
 		parser = cls.getParser()
 		args = parser.parse_args()
 		
-		if args.float:
-			utils.numclass = float
+		if args.nums == 'float':
+			utils._numclass = float
+		elif args.nums == 'decimal':
+			import decimal
+			utils._numclass = decimal.Decimal
+		
+		from .utils import blt
 		
 		# Read blt
 		with open(args.election, 'r') as electionFile:

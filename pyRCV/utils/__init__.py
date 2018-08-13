@@ -1,2 +1,5 @@
 from fractions import Fraction
-numclass = Fraction
+_numclass = Fraction
+
+def num(x):
+	return _numclass(x)

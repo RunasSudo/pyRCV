@@ -40,7 +40,7 @@ class STVCounter:
 		self.ballots = ballots
 		self.candidates = candidates
 		
-		self.exhausted = utils.numclass('0')
+		self.exhausted = utils.num('0')
 		
 		self.randdata = None
 		self.randbyte = 0
@@ -65,17 +65,17 @@ class STVCounter:
 	
 	def resetCount(self, candidates):
 		for candidate in candidates:
-			candidate.ctvv = utils.numclass('0')
+			candidate.ctvv = utils.num('0')
 			candidate.ballots.clear()
 	
 	def distributePreferences(self, ballots, remainingCandidates):
-		exhausted = utils.numclass('0')
+		exhausted = utils.num('0')
 		
 		for ballot in ballots:
-			assigned = utils.numclass('0')
+			assigned = utils.num('0')
 			last_preference = None
 			for preference in ballot.preferences:
-				if preference.keep_value > utils.numclass('0'):
+				if preference.keep_value > utils.num('0'):
 					value = (ballot.value - assigned) * preference.keep_value
 					
 					self.verboseLog('   - Assigning {} of {} votes to {} at value {} via {}', self.toNum(ballot.value - assigned), self.toNum(ballot.value), preference.name, self.toNum(preference.keep_value), ballot.prettyPreferences)
@@ -100,22 +100,22 @@ class STVCounter:
 			return "{:.2f}".format(float(num))
 	
 	def totalVoteBallots(self, ballots):
-		tv = utils.numclass('0')
+		tv = utils.num('0')
 		for ballot in ballots:
 			tv += ballot.value
 		return tv
 	
 	def totalVote(self, candidates):
-		tv = utils.numclass('0')
+		tv = utils.num('0')
 		for candidate in candidates:
 			tv += candidate.ctvv
 		return tv
 	
 	def calcQuotaNum(self, totalVote, numSeats):
 		if '-hb' in self.args['quota']:
-			return totalVote / (numSeats + utils.numclass('1'))
+			return totalVote / (numSeats + utils.num('1'))
 		if '-droop' in self.args['quota']:
-			return utils.numclass(math.floor(totalVote / (numSeats + utils.numclass('1')) + utils.numclass('1')))
+			return utils.num(math.floor(totalVote / (numSeats + utils.num('1')) + utils.num('1')))
 	
 	def calcQuota(self, remainingCandidates):
 		if self.args['quota_prog']:
@@ -147,7 +147,7 @@ class STVCounter:
 	
 	def countUntilSurpluses(self, remainingCandidates, provisionallyElected):
 		roundProvisionallyElected = []
-		roundExhausted = utils.numclass('0')
+		roundExhausted = utils.num('0')
 		
 		self.printVotes(remainingCandidates, provisionallyElected)
 		
@@ -230,7 +230,7 @@ class STVCounter:
 		remainingCandidates.sort(key=lambda k: k.ctvv)
 		grouped = [(x, list(y)) for x, y in itertools.groupby([x for x in remainingCandidates if x not in (provisionallyElected + roundProvisionallyElected)], lambda k: k.ctvv)] # ily python
 		
-		votesToExclude = utils.numclass('0')
+		votesToExclude = utils.num('0')
 		for i in range(0, len(grouped)):
 			key, group = grouped[i]
 			votesToExclude += self.totalVote(group)
@@ -386,7 +386,7 @@ class STVCounter:
 		parser.add_argument('--verbose', help='Display extra information', action='store_true')
 		parser.add_argument('--quiet', help='Silence all output except the bare minimum', action='store_true')
 		parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
-		parser.add_argument('--float', help='Use fast, approximate floating point arithmetic instead of slow, accurate rational arithmetic', action='store_true')
+		parser.add_argument('--nums', help='Kind of arithmetic to use', choices=['float', 'fraction', 'decimal'], default='fraction')
 		parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 		parser.add_argument('--quota', help='The quota/threshold condition: >=Droop, >Hagenbach-Bischoff, etc.', choices=['geq-droop', 'gt-hb', 'geq-hb'], default='geq-droop')
 		parser.add_argument('--quota-prog', help='Use a progressively-reducing quota', action='store_true')
@@ -399,16 +399,19 @@ class STVCounter:
 	
 	@classmethod
 	def main(cls):
-		from .utils import blt
-		
 		print('=== pyRCV {} ==='.format(version.VERSION))
 		print()
 		
 		parser = cls.getParser()
 		args = parser.parse_args()
 		
-		if args.float:
-			utils.numclass = float
+		if args.nums == 'float':
+			utils._numclass = float
+		elif args.nums == 'decimal':
+			import decimal
+			utils._numclass = decimal.Decimal
+		
+		from .utils import blt
 		
 		# Read blt
 		with open(args.election, 'r') as electionFile:

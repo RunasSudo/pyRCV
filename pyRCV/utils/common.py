@@ -14,20 +14,20 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from . import numclass
+from . import num
 
 class Ballot:
 	def __init__(self, preferences, prettyPreferences, value=1):
 		self.preferences = preferences
 		self.prettyPreferences = prettyPreferences
 		
-		self.value = numclass(value)
+		self.value = num(value)
 
 class Candidate:
 	def __init__(self, name):
 		self.name = name
-		self.ctvv = numclass('0')
-		self.keep_value = numclass('1')
+		self.ctvv = num('0')
+		self.keep_value = num('1')
 		self.ballots = []
 	
 	def __repr__(self):
@@ -38,4 +38,4 @@ class CandidateBallot:
 		if value is None:
 			value = ballot.value
 		self.ballot = ballot
-		self.value = numclass(value)
+		self.value = num(value)

@@ -32,9 +32,9 @@ The same for Wright STV. Note that Wright STV uses a progressively-reducing quot
 
 ### meek_stv.py
 
-    python -m pyRCV.meek_stv --election election.blt --quota geq-hb --quota-prog --float
+    python -m pyRCV.meek_stv --election election.blt --quota geq-hb --quota-prog --nums float
 
-The same for Meek STV. Note that Meek STV uses a progressively-reducing quota (`--quota-prog`), and the quota is the unrounded Droop (Hagenbach-Bischoff) quota (`--quota geq-hb`). Note also that Meek STV is quite computationally expensive, so the `--float` option is recommended to disable rational arithmetic.
+The same for Meek STV. Note that Meek STV uses a progressively-reducing quota (`--quota-prog`), and the quota is the unrounded Droop (Hagenbach-Bischoff) quota (`--quota geq-hb`). Note also that Meek STV is quite computationally expensive, so the `--nums float` option is recommended to disable rational arithmetic.
 
 ### Performing a countback
 
@@ -50,4 +50,4 @@ If some candidates have chosen not to contest the countback, you can add an `-ID
 
 ### Performance metrics
 
-On an HP Pavilion dv7-6108tx, the 49,702-vote [EVE Online CSM8 election](https://community.eveonline.com/news/dev-blogs/csm8-election-statistics/) is processed by the EVE Online [reference implementation](http://cdn1.eveonline.com/community/csm/CSM11_Election.zip) of Wright STV in an average of 6.37 seconds. (±0.04s) The same election is processed by pyRCV's equivalent `wright_stv.py --fast --float --noround` in an average of **2.34 seconds!** (±0.02s) For comparison, using increased-accuracy rational arithmetic (omitting `--float`) takes an average of 8.64 seconds. (±0.04s)
+On an HP Pavilion dv7-6108tx, the 49,702-vote [EVE Online CSM8 election](https://community.eveonline.com/news/dev-blogs/csm8-election-statistics/) is processed by the EVE Online [reference implementation](http://cdn1.eveonline.com/community/csm/CSM11_Election.zip) of Wright STV in an average of 6.37 seconds. (±0.04s) The same election is processed by pyRCV's equivalent `wright_stv.py --fast --nums float --noround` in an average of **2.34 seconds!** (±0.02s) For comparison, using increased-accuracy rational arithmetic (omitting `--num float`) takes an average of 8.64 seconds. (±0.04s)
