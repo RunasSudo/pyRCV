@@ -105,72 +105,10 @@ class MeekSTVCounter(stv.STVCounter):
 			for candidate in roundResult.provisionallyElected:
 				provisionallyElected.append(candidate)
 			
-			return provisionallyElected, self.exhausted
-	
-	@classmethod
-	def main(cls):
-		print('=== pyRCV {} ==='.format(version.VERSION))
-		print()
-		
-		parser = cls.getParser()
-		args = parser.parse_args()
-		
-		if args.nums == 'float':
-			utils._numclass = float
-		elif args.nums == 'decimal':
-			import decimal
-			utils._numclass = decimal.Decimal
-		
-		from .utils import blt
-		
-		# Read blt
-		with open(args.election, 'r') as electionFile:
-			electionLines = electionFile.read().splitlines()
-			ballots, candidates, args.seats = blt.readBLT(electionLines)
-		
-		counter = cls(ballots, candidates, **vars(args))
-		
-		if args.verbose:
-			for ballot in ballots:
-				print("{} : {}".format(counter.toNum(ballot.value), ",".join([x.name for x in ballot.preferences])))
-			print()
-		
-		elected, exhausted = counter.countVotes()
-		print()
-		print("== TALLY COMPLETE")
-		print()
-		print("The winners are, in order of election:")
-		
-		elected.sort(key=lambda x: x.keep_value)
-		
-		print()
-		for candidate in elected:
-			print("     {} ({})".format(candidate.name, counter.toNum(candidate.keep_value)))
-		print()
-		
-		print("---- Exhausted: {}".format(counter.toNum(exhausted)))
-		
-		if args.countback:
-			candidate = next(x for x in candidates if x.name == args.countback[0])
-			print("== STORING COUNTBACK DATA FOR {}".format(candidate.name))
+			# Sort by order of election via keep value
+			provisionallyElected.sort(key=lambda candidate: candidate.keep_value)
 			
-			# Sanity check
-			ctvv = 0
-			for ballot in candidate.ballots:
-				ctvv += ballot.value
-			assert ctvv == candidate.ctvv
-			
-			candidatesToExclude = []
-			for peCandidate in provisionallyElected:
-				candidatesToExclude.append(peCandidate)
-			
-			with open(args.countback[1], 'w') as countbackFile:
-				# use --noround to determine whether to use standard BLT format or rational BLT format
-				stringify = str if args.noround else float
-				print('\n'.join(utils.blt.writeBLT(candidate.ballots, candidates, 1, '', candidatesToExclude, stringify)), file=countbackFile)
-		
-		print()
-		print("=== Tally computed by pyRCV {} ===".format(version.VERSION))
+			return provisionallyElected, [self.toNum(candidate.keep_value) for candidate in provisionallyElected], self.exhausted
 
 if __name__ == '__main__':
 	MeekSTVCounter.main()

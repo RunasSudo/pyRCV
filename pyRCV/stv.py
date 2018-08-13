@@ -370,10 +370,10 @@ class STVCounter:
 					if candidate not in elected:
 						self.infoLog('**** {} provisionally elected on {} votes', candidate.name, self.toNum(candidate.ctvv))
 						elected.append(candidate)
-				return elected, self.exhausted
+				return elected, None, self.exhausted
 			
 			if len(elected) >= self.args['seats']:
-				return elected, self.exhausted
+				return elected, None, self.exhausted
 			
 			count += 1
 	
@@ -425,15 +425,15 @@ class STVCounter:
 				print("{} : {}".format(counter.toNum(ballot.value), ",".join([x.name for x in ballot.preferences])))
 			print()
 		
-		elected, exhausted = counter.countVotes()
+		elected, comments, exhausted = counter.countVotes()
 		print()
 		print("== TALLY COMPLETE")
 		print()
 		print("The winners are, in order of election:")
 		
 		print()
-		for candidate in elected:
-			print("     {}".format(candidate.name))
+		for i, candidate in enumerate(elected):
+			print("     {}{}".format(candidate.name, ' ({})'.format(comments[i]) if comments and comments[i] else ''))
 		print()
 		
 		print("---- Exhausted: {}".format(counter.toNum(exhausted)))

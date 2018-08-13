@@ -60,7 +60,7 @@ class WrightSTVCounter(stv.STVCounter):
 			for candidate in roundResult.provisionallyElected:
 				provisionallyElected.append(candidate)
 			
-			return provisionallyElected, self.exhausted
+			return provisionallyElected, None, self.exhausted
 
 if __name__ == '__main__':
 	WrightSTVCounter.main()

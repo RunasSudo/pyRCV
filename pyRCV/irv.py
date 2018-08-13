@@ -62,7 +62,7 @@ class IRVCounter(stv.STVCounter):
 		nprElected = []
 		for i in range(0, len(candidates) if args.npr else 1):
 			print("== ITERATION {}".format(i + 1))
-			elected, exhausted = counter.countVotes()
+			elected, _, exhausted = counter.countVotes()
 			nprElected.extend(elected)
 			counter.candidates.remove(elected[0])
 		
