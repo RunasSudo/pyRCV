@@ -75,7 +75,7 @@ class STVCounter:
 			assigned = utils.num('0')
 			last_preference = None
 			for preference in ballot.preferences:
-				if preference.keep_value > utils.num('0'):
+				if preference in self.candidates and preference.keep_value > utils.num('0'):
 					value = (ballot.value - assigned) * preference.keep_value
 					
 					self.verboseLog('   - Assigning {} of {} votes to {} at value {} via {}', self.toNum(ballot.value - assigned), self.toNum(ballot.value), preference.name, self.toNum(preference.keep_value), ballot.prettyPreferences)
@@ -449,13 +449,16 @@ class STVCounter:
 			assert ctvv == candidate.ctvv
 			
 			candidatesToExclude = []
-			for peCandidate in provisionallyElected:
+			for peCandidate in elected:
 				candidatesToExclude.append(peCandidate)
 			
 			with open(args.countback[1], 'w') as countbackFile:
 				# use --noround to determine whether to use standard BLT format or rational BLT format
 				stringify = str if args.noround else float
-				print('\n'.join(utils.blt.writeBLT(candidate.ballots, candidates, 1, '', candidatesToExclude, stringify)), file=countbackFile)
+				
+				
+				
+				print('\n'.join(utils.blt.writeBLT([common.Ballot(preferences=x.ballot.preferences, value=x.value, prettyPreferences=x.ballot.prettyPreferences) for x in candidate.ballots], candidates, 1, '', candidatesToExclude, stringify)), file=countbackFile)
 		
 		print()
 		print("=== Tally computed by pyRCV {} ===".format(version.VERSION))
