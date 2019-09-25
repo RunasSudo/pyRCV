@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#    Copyright © 2016-2018 RunasSudo (Yingtong Li)
+#    Copyright © 2016-2019 RunasSudo (Yingtong Li)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as published by
@@ -160,10 +160,13 @@ class STVCounter:
 		self.infoLog()
 		
 		remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
-		for candidate in remainingCandidates:
-			if candidate not in (provisionallyElected + roundProvisionallyElected) and self.hasQuota(candidate, quota):
-				self.infoLog("**** {} provisionally elected", candidate.name)
-				roundProvisionallyElected.append(candidate)
+		
+		# If "slow" IRV, skip this step, otherwise continue
+		if self.args.get('fast', False) or self.args['seats'] > 1:
+			for candidate in remainingCandidates:
+				if candidate not in (provisionallyElected + roundProvisionallyElected) and self.hasQuota(candidate, quota):
+					self.infoLog("**** {} provisionally elected", candidate.name)
+					roundProvisionallyElected.append(candidate)
 		
 		return quota, roundProvisionallyElected, roundExhausted
 	
@@ -361,6 +364,9 @@ class STVCounter:
 						self.verboseLog('   - Transferring {} votes to {} via {}', self.toNum(ballot.value), transferTo.name, ballot.ballot.prettyPreferences)
 						transferTo.ctvv += ballot.value
 						transferTo.ballots.append(ballot)
+			
+			if not self.args.get('fast', False) and roundResult.excluded:
+				self.printVotes(remainingCandidates, elected)
 			
 			# Are we done yet?
 			
