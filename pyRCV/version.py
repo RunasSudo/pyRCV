@@ -1,4 +1,4 @@
-#    Copyright © 2016-2018 RunasSudo (Yingtong Li)
+#    Copyright © 2016-2019 RunasSudo (Yingtong Li)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as published by
@@ -13,4 +13,4 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-VERSION = 'v1.1'
+VERSION = 'v1.2'
